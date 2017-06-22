@@ -18,6 +18,13 @@
 
   Game.prototype = {
     update: function() {
+      var  bodies = this.bodies;
+      var notCollidingWithAntyhing = function(b1) {
+        return bodies.filter(function(b2) { return colliding(b1, b2);  }).length === 0;
+      };
+
+      this.bodies = this.bodies.filter(notCollidingWithAntyhing);
+
       for (var i = 0; i < this.bodies.length; i++) {
         this.bodies[i].update();
       }
@@ -33,6 +40,14 @@
     addBody: function(body) {
       this.bodies.push(body);
     },
+
+    invadersBelow: function(invader) {
+      return this.bodies.filter(function(b){
+         return b instanceof Invader &&
+          b.center.y > invader.center.y &&
+          b.center.x - invader.center.x < invader.size.x
+      }).length > 0;
+    },
   };
 
   var Player = function(game, gameSize) {
@@ -40,7 +55,7 @@
     this.size = {x: 15, y: 15};
     this.center = { x: gameSize.x /2, y: gameSize.y - this.size.x};
     this.keyboarder = new Keyboarder();
-  }
+  };
 
   Player.prototype = {
     update: function() {
@@ -55,7 +70,7 @@
         this.game.addBody(bullet);
       }
   }
-}
+};
 
   var Invader = function(game, center) {
     this.game = game;
@@ -63,7 +78,7 @@
     this.center = center;
     this.patrolX = 0;
     this.speedX = 0.3;
-  }
+  };
 
   Invader.prototype = {
     update: function() {
@@ -72,6 +87,12 @@
     }
     this.center.x += this.speedX;
     this.patrolX += this.speedX;
+
+    if (Math.random() > .995 && !this.game.invadersBelow(this)) {
+      var bullet = new Bullet({x: this.center.x, y: this.center.y + this.size.x / 2},
+        {x: Math.random() - 0.5, y: 2});
+        this.game.addBody(bullet);
+    }
   }
 };
 
@@ -90,7 +111,7 @@
     this.size = {x: 3, y: 3};
     this.center = center;
     this.velocity = velocity;
-  }
+  };
 
   Bullet.prototype = {
     update: function() {
@@ -103,7 +124,7 @@
     screen.fillRect(body.center.x - body.size.x / 2,
                     body.center.y - body.size.y / 2,
                     body.size.x, body.size.y)
-  }
+  };
 
   var Keyboarder = function() {
     var keyState = {};
@@ -121,7 +142,17 @@
     };
 
     this.KEYS = {LEFT: 37, RIGHT: 39, SPACE: 32}
-  }
+  };
+
+  var colliding = function(b1, b2) {
+    return !(
+      b1 === b2 ||
+        b1.center.x + b1.size.x / 2 <= b2.center.x - b2.size.x / 2 ||
+        b1.center.y + b1.size.y / 2 <= b2.center.y - b2.size.y / 2 ||
+        b1.center.x - b1.size.x / 2 >= b2.center.x + b2.size.x / 2 ||
+        b1.center.y - b1.size.y / 2 >= b2.center.y + b2.size.y / 2
+    );
+  };
 
   window.onload = function() {
     new Game("screen");
